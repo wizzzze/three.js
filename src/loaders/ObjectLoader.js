@@ -112,12 +112,14 @@ Object.assign( ObjectLoader.prototype, {
 	setTexturePath: function ( value ) {
 
 		this.texturePath = value;
+		return this;
 
 	},
 
 	setCrossOrigin: function ( value ) {
 
 		this.crossOrigin = value;
+		return this;
 
 	},
 
@@ -456,7 +458,11 @@ Object.assign( ObjectLoader.prototype, {
 
 		for ( var i = 0; i < json.length; i ++ ) {
 
-			var clip = AnimationClip.parse( json[ i ] );
+			var data = json[ i ];
+
+			var clip = AnimationClip.parse( data );
+
+			if ( data.uuid !== undefined ) clip.uuid = data.uuid;
 
 			animations.push( clip );
 
