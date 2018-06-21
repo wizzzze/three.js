@@ -22,7 +22,7 @@ var files = {
 		"webgl_geometries",
 		"webgl_geometries_parametric",
 		"webgl_geometry_colors",
-		"webgl_geometry_colors_blender",
+		"webgl_geometry_colors_json",
 		"webgl_geometry_colors_lookuptable",
 		"webgl_geometry_convex",
 		"webgl_geometry_cube",
@@ -72,6 +72,7 @@ var files = {
 		"webgl_lines_colors",
 		"webgl_lines_dashed",
 		"webgl_lines_fat",
+		"webgl_lines_fat_wireframe",
 		"webgl_lines_sphere",
 		"webgl_loader_3ds",
 		"webgl_loader_3mf",
@@ -93,7 +94,7 @@ var files = {
 		"webgl_loader_gltf",
 		"webgl_loader_gltf_extensions",
 		"webgl_loader_imagebitmap",
-		"webgl_loader_json_blender",
+		"webgl_loader_json",
 		"webgl_loader_json_claraio",
 		"webgl_loader_json_objconverter",
 		"webgl_loader_kmz",
@@ -102,7 +103,6 @@ var files = {
 		"webgl_loader_mmd",
 		"webgl_loader_mmd_pose",
 		"webgl_loader_mmd_audio",
-		"webgl_loader_msgpack",
 		"webgl_loader_nodes",
 		"webgl_loader_obj",
 		"webgl_loader_obj_mtl",
@@ -313,6 +313,7 @@ var files = {
 	],
 	*/
 	"webaudio": [
+		"webaudio_orientation",
 		"webaudio_sandbox",
 		"webaudio_timing",
 		"webaudio_visualizer"
@@ -321,6 +322,8 @@ var files = {
 		"webvr_cubes",
 		"webvr_daydream",
 		"webvr_gearvr",
+		"webvr_lorenzattractor",
+		"webvr_oculusgo",
 		"webvr_panorama",
 		"webvr_rollercoaster",
 		"webvr_sandbox",
@@ -336,12 +339,14 @@ var files = {
 		"misc_animation_keys",
 		"misc_controls_deviceorientation",
 		"misc_controls_fly",
+		"misc_controls_map",
 		"misc_controls_orbit",
 		"misc_controls_pointerlock",
 		"misc_controls_trackball",
 		"misc_controls_transform",
 		"misc_exporter_gltf",
 		"misc_exporter_obj",
+		"misc_exporter_stl",
 		"misc_fps",
 		"misc_lights_test",
 		"misc_lookat",
@@ -358,6 +363,9 @@ var files = {
 		"css3d_sandbox",
 		"css3d_sprites",
 		"css3d_youtube"
+	],
+	"css2d": [
+		"css2d_label"
 	],
 	"canvas": [
 		"canvas_ascii_effect",
