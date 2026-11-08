@@ -4,51 +4,47 @@
 		<title>three.js webgl - orbit controls</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta property="og:title" content="three.js webgl - orbit controls">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/misc_controls_orbit.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/misc_controls_orbit.jpg">
+		<link type="text/css" rel="stylesheet" href="main.css">
 		<style>
 			body {
+				background-color: #ccc;
 				color: #000;
-				font-family:Monospace;
-				font-size:13px;
-				text-align:center;
-				font-weight: bold;
-
-				background-color: #fff;
-				margin: 0px;
-				overflow: hidden;
-			}
-
-			#info {
-				color:#000;
-				position: absolute;
-				top: 0px; width: 100%;
-				padding: 5px;
-
 			}
 
 			a {
-				color: red;
+				color: #f00;
 			}
 		</style>
 	</head>
 
 	<body>
 		<div id="info">
-			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - orbit controls example
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - orbit controls
 		</div>
 
-		<script src="../build/three.js"></script>
-		<script src="js/controls/OrbitControls.js"></script>
-		<script src="js/Detector.js"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
-		<script>
+		<script type="module">
 
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			import * as THREE from 'three';
 
-			var camera, controls, scene, renderer;
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+			let camera, controls, scene, renderer;
 
 			init();
-			//render(); // remove when using next line for animation loop (requestAnimationFrame)
-			animate();
+			//render(); // remove when using animation loop
 
 			function init() {
 
@@ -59,6 +55,7 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
 				document.body.appendChild( renderer.domElement );
 
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -66,53 +63,60 @@
 
 				// controls
 
-				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.listenToKeyEvents( window ); // optional
 
 				//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 
 				controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-				controls.dampingFactor = 0.25;
+				controls.dampingFactor = 0.05;
 
 				controls.screenSpacePanning = false;
 
 				controls.minDistance = 100;
-				controls.maxDistance = 500
+				controls.maxDistance = 500;
+
+				controls.cursorStyle = 'grab';
 
 				controls.maxPolarAngle = Math.PI / 2;
 
 				// world
 
-				var geometry = new THREE.CylinderBufferGeometry( 0, 10, 30, 4, 1 );
-				var material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
+				const geometry = new THREE.ConeGeometry( 10, 30, 4, 1 );
+				const material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
 
-				for ( var i = 0; i < 500; i ++ ) {
+				const mesh = new THREE.InstancedMesh( geometry, material, 500 );
+				const dummy = new THREE.Object3D();
 
-					var mesh = new THREE.Mesh( geometry, material );
-					mesh.position.x = Math.random() * 1600 - 800;
-					mesh.position.y = 0;
-					mesh.position.z = Math.random() * 1600 - 800;
-					mesh.updateMatrix();
-					mesh.matrixAutoUpdate = false;
-					scene.add( mesh );
+				for ( let i = 0; i < 500; i ++ ) {
+
+					dummy.position.x = Math.random() * 1600 - 800;
+					dummy.position.y = 0;
+					dummy.position.z = Math.random() * 1600 - 800;
+
+					dummy.updateMatrix();
+					mesh.setMatrixAt( i, dummy.matrix );
 
 				}
 
+				scene.add( mesh );
+
 				// lights
 
-				var light = new THREE.DirectionalLight( 0xffffff );
-				light.position.set( 1, 1, 1 );
-				scene.add( light );
+				const dirLight1 = new THREE.DirectionalLight( 0xffffff, 3 );
+				dirLight1.position.set( 1, 1, 1 );
+				scene.add( dirLight1 );
 
-				var light = new THREE.DirectionalLight( 0x002288 );
-				light.position.set( - 1, - 1, - 1 );
-				scene.add( light );
+				const dirLight2 = new THREE.DirectionalLight( 0x002288, 3 );
+				dirLight2.position.set( - 1, - 1, - 1 );
+				scene.add( dirLight2 );
 
-				var light = new THREE.AmbientLight( 0x222222 );
-				scene.add( light );
+				const ambientLight = new THREE.AmbientLight( 0x555555 );
+				scene.add( ambientLight );
 
 				//
 
-				window.addEventListener( 'resize', onWindowResize, false );
+				window.addEventListener( 'resize', onWindowResize );
 
 			}
 
@@ -126,8 +130,6 @@
 			}
 
 			function animate() {
-
-				requestAnimationFrame( animate );
 
 				controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
 

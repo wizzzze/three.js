@@ -1,97 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - postprocessing - FXAA 3.11</title>
-		<meta charset="utf-8">
+		<title>three.js WebGL  - postprocessing - FXAA</title>
+		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta property="og:title" content="three.js WebGL  - postprocessing - FXAA">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_postprocessing_fxaa.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_postprocessing_fxaa.jpg">
+		<link type="text/css" rel="stylesheet" href="main.css">
 		<style>
 			body {
-				color: #61443e;
-				font-family:Monospace;
-				font-size:13px;
-				text-align:center;
-
-				/* background-color: #bfd1e5; */
-				background-color: #ffffff;
-				margin: 0px;
+				background-color: #fff;
+				color: #222;
 			}
 
-			a {	color: #a06851;	}
-
-			canvas {
-				margin: 20px;
-				margin-top: 40px;
+			a {
+				color: #08f;
 			}
 
+			#container {
+				position: absolute;
+				top: 70px;
+				width: 100%;
+				bottom: 0px;
+			}
 		</style>
 	</head>
+
 	<body>
 
-        <div id="info">
-            <p><a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - FXAA example </p>
-            <p>original image (left) - FXAA 3.11 post-processing antialiasing (right)</p>
-			<p>Image source: <a href="https://github.com/mattdesl/glsl-fxaa" target="_blank" rel="noopener">glsl-fxaa by mattdesl</a></p>
-        </div>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - postprocessing - FXAA<br />
+			Left: No FXAA, Right: FXAA
+		</div>
+		<div id="container">
+		</div>
 
-		<div id="container"></div>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
+		<script type="module">
 
-		<script src="../build/three.js"></script>
-		<script src="js/shaders/FXAAShader.js"></script>
+			import * as THREE from 'three';
 
-		<script src="js/Detector.js"></script>
+			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+			import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-		<script>
+			let camera, scene, renderer, controls, container;
 
-			( function closure() {
+			let composer1, composer2, fxaaPass;
 
-				'use strict';
+			init();
 
-				if ( ! Detector.webgl ) {
-					Detector.addGetWebGLMessage();
+			function init() {
+
+				container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( 45, container.offsetWidth / container.offsetHeight, 1, 2000 );
+				camera.position.z = 500;
+
+				scene = new THREE.Scene();
+
+				//
+
+				const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x8d8d8d );
+				hemiLight.position.set( 0, 1000, 0 );
+				scene.add( hemiLight );
+
+				const dirLight = new THREE.DirectionalLight( 0xffffff, 3 );
+				dirLight.position.set( - 3000, 1000, - 1000 );
+				scene.add( dirLight );
+
+				//
+
+				const geometry = new THREE.TetrahedronGeometry( 10 );
+				const material = new THREE.MeshStandardMaterial( { color: 0xf73232, flatShading: true } );
+
+				const mesh = new THREE.InstancedMesh( geometry, material, 100 );
+				const dummy = new THREE.Object3D();
+
+				for ( let i = 0; i < 100; i ++ ) {
+
+					dummy.position.x = Math.random() * 500 - 250;
+					dummy.position.y = Math.random() * 500 - 250;
+					dummy.position.z = Math.random() * 500 - 250;
+
+					dummy.scale.setScalar( Math.random() * 2 + 1 );
+
+					dummy.rotation.x = Math.random() * Math.PI;
+					dummy.rotation.y = Math.random() * Math.PI;
+					dummy.rotation.z = Math.random() * Math.PI;
+
+					dummy.updateMatrix();
+					mesh.setMatrixAt( i, dummy.matrix );
+
 				}
 
-				var loader = new THREE.TextureLoader();
-				loader.load( "textures/fxaa_scene.png", function onLoad( texture ) {
-					var image = texture.image;
-					texture.minFilter = THREE.LinearFilter;
-					texture.magFilter = THREE.LinearFilter;
+				scene.add( mesh );
 
-					var fxaaMaterial = new THREE.ShaderMaterial( THREE.FXAAShader );
-					fxaaMaterial.uniforms.tDiffuse.value = texture;
-					fxaaMaterial.uniforms.resolution.value.x = 1 / image.naturalWidth;
-					fxaaMaterial.uniforms.resolution.value.y = 1 / image.naturalHeight;
+				//
 
-					var basicMaterial = new THREE.MeshBasicMaterial( { map: texture } );
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( container.offsetWidth, container.offsetHeight );
+				renderer.setAnimationLoop( animate );
+				renderer.autoClear = false;
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.autoRotate = true;
+				container.appendChild( renderer.domElement );
 
-					var plane = new THREE.PlaneBufferGeometry( 1, 1 );
+				//
 
-					var quad1 = new THREE.Mesh( plane, basicMaterial );
-					var quad2 = new THREE.Mesh( plane, fxaaMaterial );
-					var scene1 = new THREE.Scene();
-					var scene2 = new THREE.Scene();
-					scene1.add( quad1 );
-					scene2.add( quad2 );
+				const renderPass = new RenderPass( scene, camera );
+				renderPass.clearAlpha = 0;
 
-					var camera = new THREE.OrthographicCamera( -0.5, 0.5, 0.5, -0.5, -0.5, 0.5 );
+				//
 
-					var container = document.getElementById( 'container' );
+				fxaaPass = new FXAAPass();
 
+				const outputPass = new OutputPass();
 
-					var renderer1 = new THREE.WebGLRenderer();
-					renderer1.setPixelRatio( window.devicePixelRatio );
-					renderer1.setSize( image.naturalWidth, image.naturalHeight );
-					container.appendChild( renderer1.domElement );
+				composer1 = new EffectComposer( renderer );
+				composer1.addPass( renderPass );
+				composer1.addPass( outputPass );
 
-					var renderer2 = new THREE.WebGLRenderer();
-					renderer2.setPixelRatio( window.devicePixelRatio );
-					renderer2.setSize( image.naturalWidth, image.naturalHeight );
-					container.appendChild( renderer2.domElement );
+				//
 
-					renderer1.render( scene1, camera );
-					renderer2.render( scene2, camera );
-				});
-			})();
+				composer2 = new EffectComposer( renderer );
+				composer2.addPass( renderPass );
+				composer2.addPass( outputPass );
+
+				// FXAA is engineered to be applied towards the end of engine post processing after conversion to low dynamic range and conversion to the sRGB color space for display.
+
+				composer2.addPass( fxaaPass );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = container.offsetWidth / container.offsetHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( container.offsetWidth, container.offsetHeight );
+				composer1.setSize( container.offsetWidth, container.offsetHeight );
+				composer2.setSize( container.offsetWidth, container.offsetHeight );
+
+			}
+
+			function animate() {
+
+				const halfWidth = container.offsetWidth / 2;
+
+				controls.update();
+
+				renderer.setScissorTest( true );
+
+				renderer.setScissor( 0, 0, halfWidth - 1, container.offsetHeight );
+				composer1.render();
+
+				renderer.setScissor( halfWidth, 0, halfWidth, container.offsetHeight );
+				composer2.render();
+
+				renderer.setScissorTest( false );
+
+			}
 
 		</script>
 	</body>

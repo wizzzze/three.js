@@ -1,40 +1,60 @@
 import { BufferGeometry } from './BufferGeometry.js';
 
 /**
- * @author benaadams / https://twitter.com/ben_a_adams
+ * An instanced version of a geometry.
  */
+class InstancedBufferGeometry extends BufferGeometry {
 
-function InstancedBufferGeometry() {
+	/**
+	 * Constructs a new instanced buffer geometry.
+	 */
+	constructor() {
 
-	BufferGeometry.call( this );
+		super();
 
-	this.type = 'InstancedBufferGeometry';
-	this.maxInstancedCount = undefined;
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
+		this.isInstancedBufferGeometry = true;
 
-}
+		this.type = 'InstancedBufferGeometry';
 
-InstancedBufferGeometry.prototype = Object.assign( Object.create( BufferGeometry.prototype ), {
-
-	constructor: InstancedBufferGeometry,
-
-	isInstancedBufferGeometry: true,
-
-	copy: function ( source ) {
-
-		BufferGeometry.prototype.copy.call( this, source );
-
-		this.maxInstancedCount = source.maxInstancedCount;
-
-		return this;
-
-	},
-
-	clone: function () {
-
-		return new this.constructor().copy( this );
+		/**
+		 * The instance count.
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
+		this.instanceCount = Infinity;
 
 	}
 
-} );
+	copy( source ) {
+
+		super.copy( source );
+
+		this.instanceCount = source.instanceCount;
+
+		return this;
+
+	}
+
+	toJSON() {
+
+		const data = super.toJSON();
+
+		data.instanceCount = this.instanceCount;
+
+		data.isInstancedBufferGeometry = true;
+
+		return data;
+
+	}
+
+}
 
 export { InstancedBufferGeometry };

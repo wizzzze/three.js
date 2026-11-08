@@ -4,80 +4,52 @@
 		<title>three.js webgl - FBX loader - Nurbs</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				font-family: Monospace;
-				background-color: #000;
-				color: #fff;
-				margin: 0px;
-				overflow: hidden;
-			}
-			#info {
-				color: #fff;
-				position: absolute;
-				top: 10px;
-				width: 100%;
-				text-align: center;
-				z-index: 100;
-				display:block;
-			}
-			#info a {
-				color: #f00;
-				font-weight: bold;
-			}
-		</style>
+		<meta property="og:title" content="three.js webgl - FBX loader - Nurbs">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_loader_fbx_nurbs.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_loader_fbx_nurbs.jpg">
+		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 
 	<body>
 		<div id="info">
-		<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - FBXLoader - Nurbs
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - FBXLoader - Nurbs
 		</div>
 
-		<script src="../build/three.js"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
-		<script src="js/controls/OrbitControls.js"></script>
+		<script type="module">
 
-		<script src="js/curves/NURBSCurve.js"></script>
-		<script src="js/curves/NURBSUtils.js"></script>
-		<script src="js/loaders/FBXLoader.js"></script>
+			import * as THREE from 'three';
 
-		<script src="js/Detector.js"></script>
-		<script src="js/libs/stats.min.js"></script>
+			import Stats from 'three/addons/libs/stats.module.js';
 
-		<script>
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
-
-			var container, stats, controls;
-			var camera, scene, renderer, light;
+			let camera, scene, renderer, stats;
 
 			init();
-			animate();
 
 			function init() {
 
-				container = document.createElement( 'div' );
+				const container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
 				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
 				camera.position.set( 2, 18, 28 );
 
-				controls = new THREE.OrbitControls( camera );
-				controls.target.set( 0, 12, 0 );
-				controls.update();
-
 				scene = new THREE.Scene();
 
-				light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-				light.position.set( 0, 1, 0 );
-				scene.add( light );
-
-				light = new THREE.DirectionalLight( 0xffffff );
-				light.position.set( 0, 1, 0 );
-				scene.add( light );
-
 				// grid
-				var gridHelper = new THREE.GridHelper( 28, 28, 0x303030, 0x303030 );
+				const gridHelper = new THREE.GridHelper( 28, 28, 0x303030, 0x303030 );
 				scene.add( gridHelper );
 
 				// stats
@@ -85,8 +57,8 @@
 				container.appendChild( stats.dom );
 
 				// model
-				var loader = new THREE.FBXLoader();
-				loader.load( 'models/fbx/nurbs.fbx', function( object ) {
+				const loader = new FBXLoader();
+				loader.load( 'models/fbx/nurbs.fbx', function ( object ) {
 
 					scene.add( object );
 
@@ -95,9 +67,14 @@
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
 				container.appendChild( renderer.domElement );
 
-				window.addEventListener( 'resize', onWindowResize, false );
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 12, 0 );
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize );
 
 			}
 
@@ -113,8 +90,6 @@
 			//
 
 			function animate() {
-
-				requestAnimationFrame( animate );
 
 				renderer.render( scene, camera );
 

@@ -1,20 +1,20 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- */
-
 function painterSortStable( a, b ) {
 
-	if ( a.renderOrder !== b.renderOrder ) {
+	if ( a.groupOrder !== b.groupOrder ) {
+
+		return a.groupOrder - b.groupOrder;
+
+	} else if ( a.renderOrder !== b.renderOrder ) {
 
 		return a.renderOrder - b.renderOrder;
-
-	} else if ( a.program && b.program && a.program !== b.program ) {
-
-		return a.program.id - b.program.id;
 
 	} else if ( a.material.id !== b.material.id ) {
 
 		return a.material.id - b.material.id;
+
+	} else if ( a.materialVariant !== b.materialVariant ) {
+
+		return a.materialVariant - b.materialVariant;
 
 	} else if ( a.z !== b.z ) {
 
@@ -30,11 +30,15 @@ function painterSortStable( a, b ) {
 
 function reversePainterSortStable( a, b ) {
 
-	if ( a.renderOrder !== b.renderOrder ) {
+	if ( a.groupOrder !== b.groupOrder ) {
+
+		return a.groupOrder - b.groupOrder;
+
+	} else if ( a.renderOrder !== b.renderOrder ) {
 
 		return a.renderOrder - b.renderOrder;
 
-	} if ( a.z !== b.z ) {
+	} else if ( a.z !== b.z ) {
 
 		return b.z - a.z;
 
@@ -47,46 +51,37 @@ function reversePainterSortStable( a, b ) {
 }
 
 
-function painterSortStableSprites( a, b ) {
-
-	if ( a.renderOrder !== b.renderOrder ) {
-
-	 return a.renderOrder - b.renderOrder;
-
-	} else if ( a.z !== b.z ) {
-
-	 return b.z - a.z;
-
-	} else {
-
-	 return b.id - a.id;
-
-	}
-
-}
-
 function WebGLRenderList() {
 
-	var renderItems = [];
-	var renderItemsIndex = 0;
+	const renderItems = [];
+	let renderItemsIndex = 0;
 
-	var opaque = [];
-	var transparent = [];
-	var sprites = [];
+	const opaque = [];
+	const transmissive = [];
+	const transparent = [];
 
 	function init() {
 
 		renderItemsIndex = 0;
 
 		opaque.length = 0;
+		transmissive.length = 0;
 		transparent.length = 0;
-		sprites.length = 0;
 
 	}
 
-	function push( object, geometry, material, z, group ) {
+	function materialVariant( object ) {
 
-		var renderItem = renderItems[ renderItemsIndex ];
+		let variant = 0;
+		if ( object.isInstancedMesh ) variant += 2;
+		if ( object.isSkinnedMesh ) variant += 1;
+		return variant;
+
+	}
+
+	function getNextRenderItem( object, geometry, material, groupOrder, z, group ) {
+
+		let renderItem = renderItems[ renderItemsIndex ];
 
 		if ( renderItem === undefined ) {
 
@@ -95,7 +90,8 @@ function WebGLRenderList() {
 				object: object,
 				geometry: geometry,
 				material: material,
-				program: material.program,
+				materialVariant: materialVariant( object ),
+				groupOrder: groupOrder,
 				renderOrder: object.renderOrder,
 				z: z,
 				group: group
@@ -109,42 +105,102 @@ function WebGLRenderList() {
 			renderItem.object = object;
 			renderItem.geometry = geometry;
 			renderItem.material = material;
-			renderItem.program = material.program;
+			renderItem.materialVariant = materialVariant( object );
+			renderItem.groupOrder = groupOrder;
 			renderItem.renderOrder = object.renderOrder;
 			renderItem.z = z;
 			renderItem.group = group;
 
 		}
 
-		if ( object.isSprite ) {
-
-			sprites.push( renderItem );
-
-		} else {
-
-			( material.transparent === true ? transparent : opaque ).push( renderItem );
-
-		}
-
 		renderItemsIndex ++;
+
+		return renderItem;
 
 	}
 
-	function sort() {
+	function push( object, geometry, material, groupOrder, z, group, camera ) {
 
-		if ( opaque.length > 1 ) opaque.sort( painterSortStable );
-		if ( transparent.length > 1 ) transparent.sort( reversePainterSortStable );
-		if ( sprites.length > 1 ) sprites.sort( painterSortStableSprites );
+		// with a reversed depth buffer the projected z is inverted
+
+		if ( camera.reversedDepth === true ) z = - z;
+
+		const renderItem = getNextRenderItem( object, geometry, material, groupOrder, z, group );
+
+		if ( material.transmission > 0.0 ) {
+
+			transmissive.push( renderItem );
+
+		} else if ( material.transparent === true ) {
+
+			transparent.push( renderItem );
+
+		} else {
+
+			opaque.push( renderItem );
+
+		}
+
+	}
+
+	function unshift( object, geometry, material, groupOrder, z, group ) {
+
+		const renderItem = getNextRenderItem( object, geometry, material, groupOrder, z, group );
+
+		if ( material.transmission > 0.0 ) {
+
+			transmissive.unshift( renderItem );
+
+		} else if ( material.transparent === true ) {
+
+			transparent.unshift( renderItem );
+
+		} else {
+
+			opaque.unshift( renderItem );
+
+		}
+
+	}
+
+	function sort( customOpaqueSort, customTransparentSort ) {
+
+		if ( opaque.length > 1 ) opaque.sort( customOpaqueSort || painterSortStable );
+		if ( transmissive.length > 1 ) transmissive.sort( customTransparentSort || reversePainterSortStable );
+		if ( transparent.length > 1 ) transparent.sort( customTransparentSort || reversePainterSortStable );
+
+	}
+
+	function finish() {
+
+		// Clear references from inactive renderItems in the list
+
+		for ( let i = renderItemsIndex, il = renderItems.length; i < il; i ++ ) {
+
+			const renderItem = renderItems[ i ];
+
+			if ( renderItem.id === null ) break;
+
+			renderItem.id = null;
+			renderItem.object = null;
+			renderItem.geometry = null;
+			renderItem.material = null;
+			renderItem.group = null;
+
+		}
 
 	}
 
 	return {
+
 		opaque: opaque,
+		transmissive: transmissive,
 		transparent: transparent,
-		sprites: sprites,
 
 		init: init,
 		push: push,
+		unshift: unshift,
+		finish: finish,
 
 		sort: sort
 	};
@@ -153,19 +209,30 @@ function WebGLRenderList() {
 
 function WebGLRenderLists() {
 
-	var lists = {};
+	let lists = new WeakMap();
 
-	function get( scene, camera ) {
+	function get( scene, renderCallDepth ) {
 
-		var hash = scene.id + ',' + camera.id;
-		var list = lists[ hash ];
+		const listArray = lists.get( scene );
+		let list;
 
-		if ( list === undefined ) {
-
-			// console.log( 'THREE.WebGLRenderLists:', hash );
+		if ( listArray === undefined ) {
 
 			list = new WebGLRenderList();
-			lists[ hash ] = list;
+			lists.set( scene, [ list ] );
+
+		} else {
+
+			if ( renderCallDepth >= listArray.length ) {
+
+				list = new WebGLRenderList();
+				listArray.push( list );
+
+			} else {
+
+				list = listArray[ renderCallDepth ];
+
+			}
 
 		}
 
@@ -175,7 +242,7 @@ function WebGLRenderLists() {
 
 	function dispose() {
 
-		lists = {};
+		lists = new WeakMap();
 
 	}
 
@@ -187,4 +254,4 @@ function WebGLRenderLists() {
 }
 
 
-export { WebGLRenderLists };
+export { WebGLRenderLists, WebGLRenderList };

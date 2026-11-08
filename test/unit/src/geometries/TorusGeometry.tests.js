@@ -1,20 +1,13 @@
-/**
- * @author TristanVALCKE / https://github.com/Itee
- * @author Anonymous
- */
-/* global QUnit */
+import { TorusGeometry } from '../../../../src/geometries/TorusGeometry.js';
 
-import { runStdGeometryTests } from '../../qunit-utils';
-import {
-	TorusGeometry,
-	TorusBufferGeometry
-} from '../../../../src/geometries/TorusGeometry';
+import { BufferGeometry } from '../../../../src/core/BufferGeometry.js';
+import { runStdGeometryTests } from '../../utils/qunit-utils.js';
 
 export default QUnit.module( 'Geometries', () => {
 
 	QUnit.module( 'TorusGeometry', ( hooks ) => {
 
-		var geometries = undefined;
+		let geometries = undefined;
 		hooks.beforeEach( function () {
 
 			const parameters = {
@@ -23,6 +16,8 @@ export default QUnit.module( 'Geometries', () => {
 				radialSegments: 30,
 				tubularSegments: 10,
 				arc: 2.0,
+				thetaStart: Math.PI * 0.5,
+				thetaLength: Math.PI
 			};
 
 			geometries = [
@@ -32,68 +27,39 @@ export default QUnit.module( 'Geometries', () => {
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments ),
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments ),
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc ),
+				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc, parameters.thetaStart ),
+				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc, parameters.thetaStart, parameters.thetaLength ),
 			];
 
 		} );
 
 		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
+		QUnit.test( 'Extending', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// OTHERS
-		QUnit.test( 'Standard geometry tests', ( assert ) => {
-
-			runStdGeometryTests( assert, geometries );
-
-		} );
-
-	} );
-
-	QUnit.module( 'TorusBufferGeometry', ( hooks ) => {
-
-		var geometries = undefined;
-		hooks.beforeEach( function () {
-
-			const parameters = {
-				radius: 10,
-				tube: 20,
-				radialSegments: 30,
-				tubularSegments: 10,
-				arc: 2.0,
-			};
-
-			geometries = [
-				new TorusBufferGeometry(),
-				new TorusBufferGeometry( parameters.radius ),
-				new TorusBufferGeometry( parameters.radius, parameters.tube ),
-				new TorusBufferGeometry( parameters.radius, parameters.tube, parameters.radialSegments ),
-				new TorusBufferGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments ),
-				new TorusBufferGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc ),
-			];
-
-		} );
-
-		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new TorusGeometry();
+			assert.strictEqual(
+				object instanceof BufferGeometry, true,
+				'TorusGeometry extends from BufferGeometry'
+			);
 
 		} );
 
 		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
+		QUnit.test( 'Instancing', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new TorusGeometry();
+			assert.ok( object, 'Can instantiate a TorusGeometry.' );
+
+		} );
+
+		// PROPERTIES
+		QUnit.test( 'type', ( assert ) => {
+
+			const object = new TorusGeometry();
+			assert.ok(
+				object.type === 'TorusGeometry',
+				'TorusGeometry.type should be TorusGeometry'
+			);
 
 		} );
 

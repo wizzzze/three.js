@@ -1,26 +1,34 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { WebGLLights } from './WebGLLights.js';
 
-function WebGLRenderState() {
+function WebGLRenderState( extensions ) {
 
-	var lights = new WebGLLights();
+	const lights = new WebGLLights( extensions );
 
-	var lightsArray = [];
-	var shadowsArray = [];
+	const lightsArray = [];
+	const shadowsArray = [];
+	const lightProbeGridArray = [];
 
-	function init() {
+	function init( camera ) {
+
+		state.camera = camera;
 
 		lightsArray.length = 0;
 		shadowsArray.length = 0;
+		lightProbeGridArray.length = 0;
 
 	}
 
 	function pushLight( light ) {
 
-		lightsArray.push( light );
+		if ( light.isLightProbeGrid ) {
+
+			lightProbeGridArray.push( light );
+
+		} else {
+
+			lightsArray.push( light );
+
+		}
 
 	}
 
@@ -30,23 +38,38 @@ function WebGLRenderState() {
 
 	}
 
-	function setupLights( camera ) {
+	function setupLights() {
 
-		lights.setup( lightsArray, shadowsArray, camera );
+		lights.setup( lightsArray );
+
+		lightProbeGridArray.sort( ( a, b ) => a.priority - b.priority || a.id - b.id );
 
 	}
 
-	var state = {
+	function setupLightsView( camera ) {
+
+		lights.setupView( lightsArray, camera );
+
+	}
+
+	const state = {
 		lightsArray: lightsArray,
 		shadowsArray: shadowsArray,
+		lightProbeGridArray: lightProbeGridArray,
 
-		lights: lights
+		camera: null,
+
+		lights: lights,
+
+		transmissionRenderTarget: {},
+		textureUnits: 0
 	};
 
 	return {
 		init: init,
 		state: state,
 		setupLights: setupLights,
+		setupLightsView: setupLightsView,
 
 		pushLight: pushLight,
 		pushShadow: pushShadow
@@ -54,20 +77,32 @@ function WebGLRenderState() {
 
 }
 
-function WebGLRenderStates() {
+function WebGLRenderStates( extensions ) {
 
-	var renderStates = {};
+	let renderStates = new WeakMap();
 
-	function get( scene, camera ) {
+	function get( scene, renderCallDepth = 0 ) {
 
-		var hash = scene.id + ',' + camera.id;
+		const renderStateArray = renderStates.get( scene );
+		let renderState;
 
-		var renderState = renderStates[ hash ];
+		if ( renderStateArray === undefined ) {
 
-		if ( renderState === undefined ) {
+			renderState = new WebGLRenderState( extensions );
+			renderStates.set( scene, [ renderState ] );
 
-			renderState = new WebGLRenderState();
-			renderStates[ hash ] = renderState;
+		} else {
+
+			if ( renderCallDepth >= renderStateArray.length ) {
+
+				renderState = new WebGLRenderState( extensions );
+				renderStateArray.push( renderState );
+
+			} else {
+
+				renderState = renderStateArray[ renderCallDepth ];
+
+			}
 
 		}
 
@@ -77,7 +112,7 @@ function WebGLRenderStates() {
 
 	function dispose() {
 
-		renderStates = {};
+		renderStates = new WeakMap();
 
 	}
 

@@ -1,20 +1,13 @@
-/**
- * @author TristanVALCKE / https://github.com/Itee
- * @author Anonymous
- */
-/* global QUnit */
+import { PlaneGeometry } from '../../../../src/geometries/PlaneGeometry.js';
 
-import { runStdGeometryTests } from '../../qunit-utils';
-import {
-	PlaneGeometry,
-	PlaneBufferGeometry
-} from '../../../../src/geometries/PlaneGeometry';
+import { BufferGeometry } from '../../../../src/core/BufferGeometry.js';
+import { runStdGeometryTests } from '../../utils/qunit-utils.js';
 
 export default QUnit.module( 'Geometries', () => {
 
 	QUnit.module( 'PlaneGeometry', ( hooks ) => {
 
-		var geometries = undefined;
+		let geometries = undefined;
 		hooks.beforeEach( function () {
 
 			const parameters = {
@@ -35,61 +28,32 @@ export default QUnit.module( 'Geometries', () => {
 		} );
 
 		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
+		QUnit.test( 'Extending', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// OTHERS
-		QUnit.test( 'Standard geometry tests', ( assert ) => {
-
-			runStdGeometryTests( assert, geometries );
-
-		} );
-
-	} );
-
-	QUnit.module( 'PlaneBufferGeometry', ( hooks ) => {
-
-		var geometries = undefined;
-		hooks.beforeEach( function () {
-
-			const parameters = {
-				width: 10,
-				height: 30,
-				widthSegments: 3,
-				heightSegments: 5
-			};
-
-			geometries = [
-				new PlaneBufferGeometry(),
-				new PlaneBufferGeometry( parameters.width ),
-				new PlaneBufferGeometry( parameters.width, parameters.height ),
-				new PlaneBufferGeometry( parameters.width, parameters.height, parameters.widthSegments ),
-				new PlaneBufferGeometry( parameters.width, parameters.height, parameters.widthSegments, parameters.heightSegments ),
-			];
-
-		} );
-
-		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new PlaneGeometry();
+			assert.strictEqual(
+				object instanceof BufferGeometry, true,
+				'PlaneGeometry extends from BufferGeometry'
+			);
 
 		} );
 
 		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
+		QUnit.test( 'Instancing', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new PlaneGeometry();
+			assert.ok( object, 'Can instantiate a PlaneGeometry.' );
+
+		} );
+
+		// PROPERTIES
+		QUnit.test( 'type', ( assert ) => {
+
+			const object = new PlaneGeometry();
+			assert.ok(
+				object.type === 'PlaneGeometry',
+				'PlaneGeometry.type should be PlaneGeometry'
+			);
 
 		} );
 

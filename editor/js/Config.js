@@ -1,25 +1,28 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- */
+function Config() {
 
-var Config = function () {
+	const name = 'threejs-editor';
 
-	var name = 'threejs-editor';
+	const userLanguage = navigator.language.split( '-' )[ 0 ];
 
-	var storage = {
+	const suggestedLanguage = [ 'fr', 'ja', 'zh', 'ko', 'fa' ].includes( userLanguage ) ? userLanguage : 'en';
+
+	const storage = {
+		'language': suggestedLanguage,
+
 		'autosave': true,
-		'theme': 'css/light.css',
 
 		'project/title': '',
 		'project/editable': false,
-
-		'project/renderer': 'WebGLRenderer',
-		'project/renderer/antialias': true,
-		'project/renderer/gammaInput': false,
-		'project/renderer/gammaOutput': false,
-		'project/renderer/shadows': true,
-
 		'project/vr': false,
+
+		'project/camera': 'perspective',
+
+		'project/renderer/type': 'WebGLRenderer',
+		'project/renderer/antialias': true,
+		'project/renderer/shadows': true,
+		'project/renderer/shadowType': 1, // PCF
+		'project/renderer/toneMapping': 7, // NeutralToneMapping
+		'project/renderer/toneMappingExposure': 1,
 
 		'settings/history': false,
 
@@ -27,7 +30,10 @@ var Config = function () {
 		'settings/shortcuts/rotate': 'e',
 		'settings/shortcuts/scale': 'r',
 		'settings/shortcuts/undo': 'z',
-		'settings/shortcuts/focus': 'f'
+		'settings/shortcuts/focus': 'f',
+		'settings/shortcuts/perspective': 'p',
+		'settings/shortcuts/orthographic': 'o',
+		'settings/shortcuts/selectAll': 'a'
 	};
 
 	if ( window.localStorage[ name ] === undefined ) {
@@ -36,9 +42,9 @@ var Config = function () {
 
 	} else {
 
-		var data = JSON.parse( window.localStorage[ name ] );
+		const data = JSON.parse( window.localStorage[ name ] );
 
-		for ( var key in data ) {
+		for ( const key in data ) {
 
 			storage[ key ] = data[ key ];
 
@@ -56,7 +62,7 @@ var Config = function () {
 
 		setKey: function () { // key, value, key, value ...
 
-			for ( var i = 0, l = arguments.length; i < l; i += 2 ) {
+			for ( let i = 0, l = arguments.length; i < l; i += 2 ) {
 
 				storage[ arguments[ i ] ] = arguments[ i + 1 ];
 
@@ -76,4 +82,6 @@ var Config = function () {
 
 	};
 
-};
+}
+
+export { Config };

@@ -1,37 +1,59 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- */
+/* global THREE */ /* assigned at ./app/index.html */
 
-var APP = {
+const APP = {
 
 	Player: function () {
 
-		var loader = new THREE.ObjectLoader();
-		var camera, scene, renderer;
+		let renderer;
 
-		var events = {};
+		const loader = new THREE.ObjectLoader();
+		let camera, scene;
 
-		var dom = document.createElement( 'div' );
+		let events = {};
+
+		const dom = document.createElement( 'div' );
 
 		this.dom = dom;
+		this.canvas = null;
 
 		this.width = 500;
 		this.height = 500;
 
-		this.load = function ( json ) {
+		this.load = async function ( json ) {
 
-			renderer = new THREE.WebGLRenderer( { antialias: true } );
-			renderer.setClearColor( 0x000000 );
+			const project = json.project;
+
+			// Create renderer based on project settings
+
+			if ( renderer !== undefined ) {
+
+				renderer.dispose();
+				dom.removeChild( renderer.domElement );
+				this.canvas = null;
+
+			}
+
+			if ( project.renderer === 'WebGPURenderer' ) {
+
+				const { WebGPURenderer } = await import( 'three/webgpu' );
+				renderer = new WebGPURenderer( { antialias: true, reversedDepthBuffer: true } );
+				await renderer.init();
+
+			} else {
+
+				renderer = new THREE.WebGLRenderer( { antialias: true, reversedDepthBuffer: true } );
+
+			}
+
 			renderer.setPixelRatio( window.devicePixelRatio );
 
-			var project = json.project;
-
-			if ( project.gammaInput ) renderer.gammaInput = true;
-			if ( project.gammaOutput ) renderer.gammaOutput = true;
-			if ( project.shadows ) renderer.shadowMap.enabled = true;
-			if ( project.vr ) renderer.vr.enabled = true;
+			if ( project.shadows !== undefined ) renderer.shadowMap.enabled = project.shadows;
+			if ( project.shadowType !== undefined ) renderer.shadowMap.type = project.shadowType;
+			if ( project.toneMapping !== undefined ) renderer.toneMapping = project.toneMapping;
+			if ( project.toneMappingExposure !== undefined ) renderer.toneMappingExposure = project.toneMappingExposure;
 
 			dom.appendChild( renderer.domElement );
+			this.canvas = renderer.domElement;
 
 			this.setScene( loader.parse( json.scene ) );
 			this.setCamera( loader.parse( json.camera ) );
@@ -42,17 +64,14 @@ var APP = {
 				stop: [],
 				keydown: [],
 				keyup: [],
-				mousedown: [],
-				mouseup: [],
-				mousemove: [],
-				touchstart: [],
-				touchend: [],
-				touchmove: [],
+				pointerdown: [],
+				pointerup: [],
+				pointermove: [],
 				update: []
 			};
 
-			var scriptWrapParams = 'player,renderer,scene,camera';
-			var scriptWrapResultObj = {};
+			let scriptWrapParams = 'player,renderer,scene,camera';
+			const scriptWrapResultObj = {};
 
 			for ( var eventKey in events ) {
 
@@ -61,11 +80,11 @@ var APP = {
 
 			}
 
-			var scriptWrapResult = JSON.stringify( scriptWrapResultObj ).replace( /\"/g, '' );
+			const scriptWrapResult = JSON.stringify( scriptWrapResultObj ).replace( /\"/g, '' );
 
-			for ( var uuid in json.scripts ) {
+			for ( const uuid in json.scripts ) {
 
-				var object = scene.getObjectByProperty( 'uuid', uuid, true );
+				const object = scene.getObjectByProperty( 'uuid', uuid, true );
 
 				if ( object === undefined ) {
 
@@ -74,15 +93,15 @@ var APP = {
 
 				}
 
-				var scripts = json.scripts[ uuid ];
+				const scripts = json.scripts[ uuid ];
 
-				for ( var i = 0; i < scripts.length; i ++ ) {
+				for ( let i = 0; i < scripts.length; i ++ ) {
 
-					var script = scripts[ i ];
+					const script = scripts[ i ];
 
-					var functions = ( new Function( scriptWrapParams, script.source + '\nreturn ' + scriptWrapResult + ';' ).bind( object ) )( this, renderer, scene, camera );
+					const functions = ( new Function( scriptWrapParams, script.source + '\nreturn ' + scriptWrapResult + ';' ).bind( object ) )( this, renderer, scene, camera );
 
-					for ( var name in functions ) {
+					for ( const name in functions ) {
 
 						if ( functions[ name ] === undefined ) continue;
 
@@ -108,20 +127,25 @@ var APP = {
 		this.setCamera = function ( value ) {
 
 			camera = value;
-			camera.aspect = this.width / this.height;
-			camera.updateProjectionMatrix();
-
-			if ( renderer.vr.enabled ) {
-
-				dom.appendChild( WEBVR.createButton( renderer ) );
-
-			}
+			setCameraAspect( camera, this.width / this.height );
 
 		};
 
 		this.setScene = function ( value ) {
 
 			scene = value;
+
+		};
+
+		this.setPixelRatio = function ( pixelRatio ) {
+
+			renderer.setPixelRatio( pixelRatio );
+
+		};
+
+		this.setClearColor = function ( color ) {
+
+			renderer.setClearColor( color );
 
 		};
 
@@ -132,8 +156,7 @@ var APP = {
 
 			if ( camera ) {
 
-				camera.aspect = this.width / this.height;
-				camera.updateProjectionMatrix();
+				setCameraAspect( camera, this.width / this.height );
 
 			}
 
@@ -145,9 +168,28 @@ var APP = {
 
 		};
 
+		function setCameraAspect( camera, aspect ) {
+
+			if ( camera.isPerspectiveCamera ) {
+
+				camera.aspect = aspect;
+
+			} else {
+
+				const frustumHeight = camera.top - camera.bottom;
+
+				camera.left = - frustumHeight * aspect / 2;
+				camera.right = frustumHeight * aspect / 2;
+
+			}
+
+			camera.updateProjectionMatrix();
+
+		}
+
 		function dispatch( array, event ) {
 
-			for ( var i = 0, l = array.length; i < l; i ++ ) {
+			for ( let i = 0, l = array.length; i < l; i ++ ) {
 
 				array[ i ]( event );
 
@@ -155,7 +197,7 @@ var APP = {
 
 		}
 
-		var time, prevTime;
+		let time, startTime, prevTime;
 
 		function animate() {
 
@@ -163,11 +205,11 @@ var APP = {
 
 			try {
 
-				dispatch( events.update, { time: time, delta: time - prevTime } );
+				dispatch( events.update, { time: time - startTime, delta: time - prevTime } );
 
 			} catch ( e ) {
 
-				console.error( ( e.message || e ), ( e.stack || "" ) );
+				console.error( ( e.message || e ), ( e.stack || '' ) );
 
 			}
 
@@ -179,16 +221,13 @@ var APP = {
 
 		this.play = function () {
 
-			prevTime = performance.now();
+			startTime = prevTime = performance.now();
 
-			document.addEventListener( 'keydown', onDocumentKeyDown );
-			document.addEventListener( 'keyup', onDocumentKeyUp );
-			document.addEventListener( 'mousedown', onDocumentMouseDown );
-			document.addEventListener( 'mouseup', onDocumentMouseUp );
-			document.addEventListener( 'mousemove', onDocumentMouseMove );
-			document.addEventListener( 'touchstart', onDocumentTouchStart );
-			document.addEventListener( 'touchend', onDocumentTouchEnd );
-			document.addEventListener( 'touchmove', onDocumentTouchMove );
+			document.addEventListener( 'keydown', onKeyDown );
+			document.addEventListener( 'keyup', onKeyUp );
+			document.addEventListener( 'pointerdown', onPointerDown );
+			document.addEventListener( 'pointerup', onPointerUp );
+			document.addEventListener( 'pointermove', onPointerMove );
 
 			dispatch( events.start, arguments );
 
@@ -198,14 +237,11 @@ var APP = {
 
 		this.stop = function () {
 
-			document.removeEventListener( 'keydown', onDocumentKeyDown );
-			document.removeEventListener( 'keyup', onDocumentKeyUp );
-			document.removeEventListener( 'mousedown', onDocumentMouseDown );
-			document.removeEventListener( 'mouseup', onDocumentMouseUp );
-			document.removeEventListener( 'mousemove', onDocumentMouseMove );
-			document.removeEventListener( 'touchstart', onDocumentTouchStart );
-			document.removeEventListener( 'touchend', onDocumentTouchEnd );
-			document.removeEventListener( 'touchmove', onDocumentTouchMove );
+			document.removeEventListener( 'keydown', onKeyDown );
+			document.removeEventListener( 'keyup', onKeyUp );
+			document.removeEventListener( 'pointerdown', onPointerDown );
+			document.removeEventListener( 'pointerup', onPointerUp );
+			document.removeEventListener( 'pointermove', onPointerMove );
 
 			dispatch( events.stop, arguments );
 
@@ -213,72 +249,61 @@ var APP = {
 
 		};
 
+		this.render = function ( time ) {
+
+			dispatch( events.update, { time: time * 1000, delta: 0 /* TODO */ } );
+
+			renderer.render( scene, camera );
+
+		};
+
 		this.dispose = function () {
 
-			while ( dom.children.length ) {
+			if ( renderer ) {
 
-				dom.removeChild( dom.firstChild );
+				renderer.dispose();
 
 			}
 
-			renderer.dispose();
-
 			camera = undefined;
 			scene = undefined;
-			renderer = undefined;
 
 		};
 
 		//
 
-		function onDocumentKeyDown( event ) {
+		function onKeyDown( event ) {
 
 			dispatch( events.keydown, event );
 
 		}
 
-		function onDocumentKeyUp( event ) {
+		function onKeyUp( event ) {
 
 			dispatch( events.keyup, event );
 
 		}
 
-		function onDocumentMouseDown( event ) {
+		function onPointerDown( event ) {
 
-			dispatch( events.mousedown, event );
-
-		}
-
-		function onDocumentMouseUp( event ) {
-
-			dispatch( events.mouseup, event );
+			dispatch( events.pointerdown, event );
 
 		}
 
-		function onDocumentMouseMove( event ) {
+		function onPointerUp( event ) {
 
-			dispatch( events.mousemove, event );
-
-		}
-
-		function onDocumentTouchStart( event ) {
-
-			dispatch( events.touchstart, event );
+			dispatch( events.pointerup, event );
 
 		}
 
-		function onDocumentTouchEnd( event ) {
+		function onPointerMove( event ) {
 
-			dispatch( events.touchend, event );
-
-		}
-
-		function onDocumentTouchMove( event ) {
-
-			dispatch( events.touchmove, event );
+			dispatch( events.pointermove, event );
 
 		}
 
 	}
 
 };
+
+export { APP };

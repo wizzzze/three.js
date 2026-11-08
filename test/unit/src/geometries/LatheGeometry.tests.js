@@ -1,19 +1,14 @@
-/**
- * @author TristanVALCKE / https://github.com/Itee
- */
-/* global QUnit */
+import { LatheGeometry } from '../../../../src/geometries/LatheGeometry.js';
 
-import { runStdGeometryTests } from '../../qunit-utils';
-import {
-	LatheGeometry,
-	LatheBufferGeometry
-} from '../../../../src/geometries/LatheGeometry';
+import { BufferGeometry } from '../../../../src/core/BufferGeometry.js';
+import { Vector3 } from '../../../../src/math/Vector3.js';
+import { runStdGeometryTests } from '../../utils/qunit-utils.js';
 
 export default QUnit.module( 'Geometries', () => {
 
 	QUnit.module( 'LatheGeometry', ( hooks ) => {
 
-		var geometries = undefined;
+		let geometries = undefined;
 		hooks.beforeEach( function () {
 
 			const parameters = {
@@ -24,23 +19,38 @@ export default QUnit.module( 'Geometries', () => {
 			};
 
 			geometries = [
-				//				new LatheGeometry(), // Todo: error for undefined point
-				new LatheGeometry( parameters.points )
+				new LatheGeometry( parameters.points ),
 			];
 
 		} );
 
 		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
+		QUnit.test( 'Extending', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new LatheGeometry();
+			assert.strictEqual(
+				object instanceof BufferGeometry, true,
+				'LatheGeometry extends from BufferGeometry'
+			);
 
 		} );
 
 		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
+		QUnit.test( 'Instancing', ( assert ) => {
 
-			assert.ok( false, "everything's gonna be alright" );
+			const object = new LatheGeometry();
+			assert.ok( object, 'Can instantiate a LatheGeometry.' );
+
+		} );
+
+		// PROPERTIES
+		QUnit.test( 'type', ( assert ) => {
+
+			const object = new LatheGeometry();
+			assert.ok(
+				object.type === 'LatheGeometry',
+				'LatheGeometry.type should be LatheGeometry'
+			);
 
 		} );
 
@@ -51,45 +61,21 @@ export default QUnit.module( 'Geometries', () => {
 
 		} );
 
-	} );
+		QUnit.test( 'normals', ( assert ) => {
 
-	QUnit.module( 'LatheBufferGeometry', ( hooks ) => {
+			const normals = new LatheGeometry().getAttribute( 'normal' );
+			const normal = new Vector3();
+			let nonUnitNormals = 0;
 
-		var geometries = undefined;
-		hooks.beforeEach( function () {
+			for ( let i = 0; i < normals.count; i ++ ) {
 
-			const parameters = {
-				points: [],
-				segments: 0,
-				phiStart: 0,
-				phiLength: 0
-			};
+				normal.fromBufferAttribute( normals, i );
 
-			geometries = [
-				//				new LatheBufferGeometry(), // Todo: error for undefined point
-				new LatheBufferGeometry( parameters.points )
-			];
+				if ( Math.abs( normal.length() - 1 ) > 1e-6 ) nonUnitNormals ++;
 
-		} );
+			}
 
-		// INHERITANCE
-		QUnit.todo( "Extending", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// INSTANCING
-		QUnit.todo( "Instancing", ( assert ) => {
-
-			assert.ok( false, "everything's gonna be alright" );
-
-		} );
-
-		// OTHERS
-		QUnit.test( 'Standard geometry tests', ( assert ) => {
-
-			runStdGeometryTests( assert, geometries );
+			assert.strictEqual( nonUnitNormals, 0, 'All normals have unit length.' );
 
 		} );
 

@@ -1,20 +1,15 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- */
-
 function WebGLAnimation() {
 
-	var context = null;
-	var isAnimating = false;
-	var animationLoop = null;
+	let context = null;
+	let isAnimating = false;
+	let animationLoop = null;
+	let requestId = null;
 
 	function onAnimationFrame( time, frame ) {
 
-		if ( isAnimating === false ) return;
+		requestId = context.requestAnimationFrame( onAnimationFrame );
 
 		animationLoop( time, frame );
-
-		context.requestAnimationFrame( onAnimationFrame );
 
 	}
 
@@ -24,14 +19,17 @@ function WebGLAnimation() {
 
 			if ( isAnimating === true ) return;
 			if ( animationLoop === null ) return;
+			if ( context === null ) return;
 
-			context.requestAnimationFrame( onAnimationFrame );
+			requestId = context.requestAnimationFrame( onAnimationFrame );
 
 			isAnimating = true;
 
 		},
 
 		stop: function () {
+
+			if ( context !== null ) context.cancelAnimationFrame( requestId );
 
 			isAnimating = false;
 

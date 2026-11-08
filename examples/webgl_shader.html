@@ -4,40 +4,16 @@
 		<title>three.js webgl - shader [Monjori]</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				color: #ffffff;
-				font-family:Monospace;
-				font-size:13px;
-				text-align:center;
-				font-weight: bold;
-
-				background-color: #000000;
-				margin: 0px;
-				overflow: hidden;
-			}
-
-			#info {
-				position: absolute;
-				top: 0px; width: 100%;
-				padding: 5px;
-			}
-
-			a {
-
-				color: #ffffff;
-			}
-
-		</style>
+		<meta property="og:title" content="three.js webgl - shader [Monjori]">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_shader.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_shader.jpg">
+		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
 
 		<div id="container"></div>
-		<div id="info"><a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - shader demo. featuring <a href="http://www.pouet.net/prod.php?which=52761" target="_blank" rel="noopener">Monjori by Mic</a></div>
-
-		<script src="../build/three.js"></script>
-
-		<script src="js/Detector.js"></script>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - shader demo. featuring <a href="http://www.pouet.net/prod.php?which=52761" target="_blank" rel="noopener">Monjori by Mic</a></div>
 
 		<script id="vertexShader" type="x-shader/x-vertex">
 
@@ -91,34 +67,40 @@
 
 		</script>
 
-		<script>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+		<script type="module">
 
-			var container;
+			import * as THREE from 'three';
 
-			var camera, scene, renderer;
+			let camera, scene, renderer;
 
-			var uniforms;
+			let uniforms;
 
 			init();
-			animate();
 
 			function init() {
 
-				container = document.getElementById( 'container' );
+				const container = document.getElementById( 'container' );
 
 				camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
 
 				scene = new THREE.Scene();
 
-				var geometry = new THREE.PlaneBufferGeometry( 2, 2 );
+				const geometry = new THREE.PlaneGeometry( 2, 2 );
 
 				uniforms = {
 					time: { value: 1.0 }
 				};
 
-				var material = new THREE.ShaderMaterial( {
+				const material = new THREE.ShaderMaterial( {
 
 					uniforms: uniforms,
 					vertexShader: document.getElementById( 'vertexShader' ).textContent,
@@ -126,20 +108,20 @@
 
 				} );
 
-				var mesh = new THREE.Mesh( geometry, material );
+				const mesh = new THREE.Mesh( geometry, material );
 				scene.add( mesh );
 
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
 				container.appendChild( renderer.domElement );
 
-				onWindowResize();
-
-				window.addEventListener( 'resize', onWindowResize, false );
+				window.addEventListener( 'resize', onWindowResize );
 
 			}
 
-			function onWindowResize( event ) {
+			function onWindowResize() {
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
@@ -147,11 +129,9 @@
 
 			//
 
-			function animate( timestamp ) {
+			function animate() {
 
-				requestAnimationFrame( animate );
-
-				uniforms.time.value = timestamp / 1000;
+				uniforms[ 'time' ].value = performance.now() / 1000;
 
 				renderer.render( scene, camera );
 

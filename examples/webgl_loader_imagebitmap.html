@@ -4,69 +4,59 @@
 		<title>three.js webgl - loader - ImageBitmap</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				font-family: Monospace;
-				background-color: #000;
-				color: #fff;
-				margin: 0px;
-				overflow: hidden;
-			}
-			#info {
-				position: absolute;
-				top: 10px;
-				width: 100%;
-				text-align: center;
-				z-index: 100;
-				display:block;
-			}
-			#info a, .button {
-				color: #f00;
-				font-weight: bold;
-				text-decoration: underline;
-				cursor: pointer
-			}
-		</style>
+		<meta property="og:title" content="three.js webgl - loader - ImageBitmap">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_loader_imagebitmap.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_loader_imagebitmap.jpg">
+		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
-		<script src="../build/three.js"></script>
-		<script src="js/Detector.js"></script>
 		<div id="info">
-			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - Texture loader using ImageBitmap
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - Texture loader using ImageBitmap
 		</div>
 
-		<script>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+		<script type="module">
 
-			var container;
+			import * as THREE from 'three';
 
-			var camera, scene, renderer;
-			var group, cubes;
+			let camera, scene, renderer;
+			let group, cubes;
 
 			init();
-			animate();
 
 			function addImageBitmap() {
 
 				new THREE.ImageBitmapLoader()
-					.setOptions( { imageOrientation: 'none' } )
+					.setOptions( { imageOrientation: 'flipY' } )
 					.load( 'textures/planets/earth_atmos_2048.jpg?' + performance.now(), function ( imageBitmap ) {
 
-						var texture = new THREE.CanvasTexture( imageBitmap );
-						var material = new THREE.MeshBasicMaterial( { map: texture } );
+						const texture = new THREE.CanvasTexture( imageBitmap );
+						texture.colorSpace = THREE.SRGBColorSpace;
+						const material = new THREE.MeshBasicMaterial( { map: texture } );
 
-						/* ImageBitmap should be disposed when done with it
-						   Can't be done until it's actually uploaded to WebGLTexture */
+						// ImageBitmap should be disposed when done with it.
 
-						// imageBitmap.close();
+						texture.onUpdate = disposeImageBitmap;
 
 						addCube( material );
 
-					}, function( p ) {
+					}, function ( p ) {
+
 						console.log( p );
-					}, function( e ) {
+
+					}, function ( e ) {
+
 						console.log( e );
+
 					} );
 
 			}
@@ -76,18 +66,21 @@
 				new THREE.ImageLoader()
 					.setCrossOrigin( '*' )
 					.load( 'textures/planets/earth_atmos_2048.jpg?' + performance.now(), function ( image ) {
-							var texture = new THREE.CanvasTexture( image );
-							var material = new THREE.MeshBasicMaterial( { color: 0xff8888, map: texture } );
-							addCube( material );
-				});
+
+						const texture = new THREE.CanvasTexture( image );
+						texture.colorSpace = THREE.SRGBColorSpace;
+						const material = new THREE.MeshBasicMaterial( { color: 0xff8888, map: texture } );
+						addCube( material );
+
+					} );
 
 			}
 
-			var geometry = new THREE.BoxBufferGeometry( 1,1,1 );
+			const geometry = new THREE.BoxGeometry();
 
 			function addCube( material ) {
 
-				var cube = new THREE.Mesh( geometry, material );
+				const cube = new THREE.Mesh( geometry, material );
 				cube.position.set( Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1 );
 				cube.rotation.set( Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI );
 				cubes.add( cube );
@@ -96,14 +89,14 @@
 
 			function init() {
 
-				container = document.createElement( 'div' );
+				const container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
 				// CAMERA
 
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1500 );
 				camera.position.set( 0, 4, 7 );
-				camera.lookAt( new THREE.Vector3() );
+				camera.lookAt( 0, 0, 0 );
 
 				// SCENE
 
@@ -114,7 +107,7 @@
 				group = new THREE.Group();
 				scene.add( group );
 
-				group.add( new THREE.GridHelper( 4, 12 ) );
+				group.add( new THREE.GridHelper( 4, 12, 0x888888, 0x444444 ) );
 
 				cubes = new THREE.Group();
 				group.add( cubes );
@@ -124,6 +117,7 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
 				container.appendChild( renderer.domElement );
 
 				// TESTS
@@ -137,7 +131,7 @@
 
 				// EVENTS
 
-				window.addEventListener( 'resize', onWindowResize, false );
+				window.addEventListener( 'resize', onWindowResize );
 
 			}
 
@@ -156,7 +150,12 @@
 
 				renderer.render( scene, camera );
 
-				requestAnimationFrame( animate );
+			}
+
+			function disposeImageBitmap( texture ) {
+
+				texture.source.data.close();
+				texture.onUpdate = null; // make sure this callback is executed only once per texture
 
 			}
 
